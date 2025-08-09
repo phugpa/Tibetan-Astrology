@@ -30,7 +30,7 @@
     .desc-block h3{ margin:2px 0 2px; font-size:18px; color:#cfe3ff; }
     .desc-block .tier{ margin-bottom:6px; font-size:12px; color:#9fc2ff; }
     .desc-block p{ margin:8px 0 0; color:#c5d3e3; line-height:1.7; }
-    .small{ font-size:12px; color:var(--muted); }
+    .small{ font-size:12px; color:var(--muted); min-height:1em; }
     .note{ margin:24px 0 8px; font-size:18px; letter-spacing:.2px; }
   </style>
 </head>
@@ -99,21 +99,26 @@
   </div>
 
   <script>
-    // --- Data (trimmed sample; your full 2025 mapping should be here) ---
-    const recordsByDate = {"28 Feb 2025":{"lunar":1,"dow":"Fri","constel":"mon gre","pair":"Earth-Water","wdate":"28 Feb 2025"}};
+    // Data container and fetch
+    let recordsByDate = {};
+    const statusEl = document.getElementById("status");
+    fetch("records-2025.json", { cache: "no-store" })
+      .then(r => { if(!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(data => { recordsByDate = data; init(); })
+      .catch(err => { statusEl.textContent = "Failed to load data"; console.error(err); });
 
     // Combination meanings
     const combos = {
-      "Earth+Earth": {"tier":"Excellent","name":"Attainment","desc":"Everything is stable and well-supported. Efforts tend to bear fruit, and projects move toward completion without obstacles. It is a day when persistence pays off, making it excellent for important agreements, starting long-term ventures, or solidifying relationships."},
-      "Water+Water": {"tier":"Excellent","name":"Nectar","desc":"A nourishing and life-supporting combination, like a steady stream feeding fertile fields. It promotes vitality, health, and emotional harmony. Ideal for practices that increase longevity, for developing personal capacity (Wang), and for healing relationships."},
-      "Earth+Water": {"tier":"Excellent","name":"Youth","desc":"The union of stability (Earth) and nourishment (Water) produces joy and a fresh, optimistic outlook. It encourages emotional renewal, reconciliation, and beginning new ventures with enthusiasm. Happiness, friendship, and trust grow easily under this influence."},
-      "Fire+Fire": {"tier":"Transformable","name":"Progress","desc":"A strong, driving energy that favors advancement, recognition, and achievement. Great for making bold moves in career or finances. Because it can be intense, success comes if the fire is directed wisely rather than scattered."},
-      "Air+Air":  {"tier":"Transformable","name":"Perfecting","desc":"The light, mobile nature of Air doubles here, favoring refinement, learning, and completing unfinished work. Desires can be fulfilled if one remains focused. Good for resolving details, improving skills, or polishing presentations."},
-      "Fire+Air": {"tier":"Transformable","name":"Energy/Force","desc":"Dynamic and stimulating, this pairing fuels ambition and decisive action. It supports leadership, innovation, and undertakings that require courage and quick thinking. If unbalanced, it can lead to impulsive moves—clear intent is essential."},
-      "Earth+Air": {"tier":"Unfavorable","name":"Consummation","desc":"The solidity of Earth and the restlessness of Air are at odds, leading to instability. Gains can be short-lived, and resources may diminish. Not ideal for investments or long-term commitments. Useful for closure, but risky for beginnings."},
-      "Water+Air": {"tier":"Unfavorable","name":"Separation","desc":"This pairing suggests drift and division. Relationships or agreements may face misunderstandings or partings. Travel plans or negotiations may be disrupted. Better for letting go of what no longer serves than for trying to bind things together."},
-      "Earth+Fire":{"tier":"Unfavorable","name":"Burning","desc":"Fire scorches Earth here, creating friction and difficulty. Emotions can run high, and disputes may arise. Not favorable for harmony in partnerships or family matters. Physical health may also feel strained under this influence."},
-      "Fire+Water":{"tier":"Unfavorable","name":"Death","desc":"Opposing forces clash and can dissolve projects, relationships, or plans suddenly. Avoid important undertakings. Better to rest, do inner work, or conclude matters that must end."}
+      "Earth+Earth": { "tier":"Excellent","name":"Attainment","desc":"Everything is stable and well-supported. Efforts tend to bear fruit, and projects move toward completion without obstacles. It is a day when persistence pays off, making it excellent for important agreements, starting long-term ventures, or solidifying relationships." },
+      "Water+Water": { "tier":"Excellent","name":"Nectar","desc":"A nourishing and life-supporting combination, like a steady stream feeding fertile fields. It promotes vitality, health, and emotional harmony. Ideal for practices that increase longevity, for developing personal capacity (Wang), and for healing relationships." },
+      "Earth+Water": { "tier":"Excellent","name":"Youth","desc":"The union of stability (Earth) and nourishment (Water) produces joy and a fresh, optimistic outlook. It encourages emotional renewal, reconciliation, and beginning new ventures with enthusiasm. Happiness, friendship, and trust grow easily under this influence." },
+      "Fire+Fire": { "tier":"Transformable","name":"Progress","desc":"A strong, driving energy that favors advancement, recognition, and achievement. Great for making bold moves in career or finances. Because it can be intense, success comes if the fire is directed wisely rather than scattered." },
+      "Air+Air":  { "tier":"Transformable","name":"Perfecting","desc":"The light, mobile nature of Air doubles here, favoring refinement, learning, and completing unfinished work. Desires can be fulfilled if one remains focused. Good for resolving details, improving skills, or polishing presentations." },
+      "Fire+Air": { "tier":"Transformable","name":"Energy/Force","desc":"Dynamic and stimulating, this pairing fuels ambition and decisive action. It supports leadership, innovation, and undertakings that require courage and quick thinking. If unbalanced, it can lead to impulsive moves—clear intent is essential." },
+      "Earth+Air": { "tier":"Unfavorable","name":"Consummation","desc":"The solidity of Earth and the restlessness of Air are at odds, leading to instability. Gains can be short-lived, and resources may diminish. Not ideal for investments or long-term commitments. Useful for closure, but risky for beginnings." },
+      "Water+Air": { "tier":"Unfavorable","name":"Separation","desc":"This pairing suggests drift and division. Relationships or agreements may face misunderstandings or partings. Travel plans or negotiations may be disrupted. Better for letting go of what no longer serves than for trying to bind things together." },
+      "Earth+Fire":{ "tier":"Unfavorable","name":"Burning","desc":"Fire scorches Earth here, creating friction and difficulty. Emotions can run high, and disputes may arise. Not favorable for harmony in partnerships or family matters. Physical health may also feel strained under this influence." },
+      "Fire+Water":{ "tier":"Unfavorable","name":"Death","desc":"Opposing forces clash and can dissolve projects, relationships, or plans suddenly. Avoid important undertakings. Better to rest, do inner work, or conclude matters that must end." }
     };
 
     // Helpers
@@ -131,22 +136,15 @@
     const descTitle = document.getElementById("descTitle");
     const descTier = document.getElementById("descTier");
     const descText = document.getElementById("descText");
-    const statusEl = document.getElementById("status");
-
-    function fmtDate_DMonYYYY_to_ISO(dMonY) {
-      const d = new Date(dMonY);
-      const y = d.getFullYear();
-      const m = (d.getMonth()+1).toString().padStart(2,'0');
-      const day = d.getDate().toString().padStart(2,'0');
-      return `${y}-${m}-${day}`;
-    }
 
     function onPick(isoYMD) {
-      // Build a key like "8 Aug 2025"
       const d = new Date(isoYMD);
+      if (isNaN(d)) return;
+
       const opts = { day: "numeric", month: "short", year: "numeric" };
       const key = d.toLocaleDateString("en-GB", opts).replace(",", "");
       const rec = recordsByDate[key];
+
       if (!rec) {
         fileDOW.textContent = "—";
         fileConst.textContent = "—";
@@ -155,11 +153,13 @@
         descBlock.style.display = "none";
         return;
       }
+
       fileDOW.textContent = rec.dow;
       fileConst.textContent = rec.constel;
-      const pair = normalizePair(rec.pair.replace(/\bWind\b/g, "Air"));
+      const pair = normalizePair((rec.pair || "").replace(/\bWind\b/g, "Air"));
       filePair.textContent = pair.replace("+","-");
       const combo = lookupCombo(pair);
+
       if (combo) {
         fileResult.textContent = `${combo.name} (${combo.tier})`;
         descBlock.style.display = "block";
@@ -172,17 +172,29 @@
       }
     }
 
-    // Auto-select today's date if it is in 2025
-    (function init() {
-      statusEl.textContent = ""; // hide debug
+    function init() {
+      // Auto-select today's date if it's in 2025; otherwise default to first available date.
       const today = new Date();
+      let iso = "";
       if (today.getFullYear() === 2025) {
-        const iso = today.toISOString().slice(0,10);
+        iso = today.toISOString().slice(0,10);
+      } else {
+        // Use first key from records
+        const firstKey = Object.keys(recordsByDate)[0];
+        if (firstKey) {
+          const [day, mon, year] = firstKey.split(" ");
+          const monthIndex = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"].indexOf(mon);
+          const dt = new Date(parseInt(year,10), monthIndex, parseInt(day,10));
+          iso = dt.toISOString().slice(0,10);
+        }
+      }
+      if (iso) {
         datePick.value = iso;
         onPick(iso);
       }
       datePick.addEventListener("change", (e) => onPick(e.target.value));
-    })();
+      statusEl.textContent = ""; // hide any messages once initialized
+    }
   </script>
 </body>
 </html>
